@@ -65,7 +65,8 @@
   `opts` carries `:base` (this server's RDAP base URL, used to build `self`
   links), `:tos-url`, and `:registrar-name`."
   [registry method path now & [opts]]
-  (let [segs (split-path path)
+  (let [host-lookup (:host-lookup opts)
+        segs (split-path path)
         [kind ident] segs
         opts (or opts {})]
     (cond
@@ -112,12 +113,23 @@
           (error-reply 404 "Not Found" (str "No such domain: " ident))))
 
       (= kind "nameserver")
-      ;; Nameservers are not first-class objects in this registry yet: `srs`
-      ;; stores them as names on the domain. Answering 404 for every one would
-      ;; be a lie for names that plainly exist in the zone, so this reports the
-      ;; honest state — the object class is not served.
-      (error-reply 501 "Not Implemented"
-                   "This registry does not serve nameserver objects (see srs scope)")
+      ;; `srs.host` models these now, so they are served — but only when the
+      ;; caller supplies a `:host-lookup`. A deployment that stores nameservers
+      ;; as plain strings still has nothing to answer with, and 501 stays the
+      ;; honest reply there: 404 would be a lie for names that plainly exist in
+      ;; the zone.
+      (cond
+        (not (ldh-name? ident))
+        (error-reply 400 "Bad Request" (str "Not a well-formed host name: " ident))
+
+        (nil? host-lookup)
+        (error-reply 501 "Not Implemented"
+                     "This deployment does not serve nameserver objects; supply :host-lookup")
+
+        :else
+        (if-let [h (host-lookup ident)]
+          (reply 200 (res/top-level (res/nameserver-object h opts) opts))
+          (error-reply 404 "Not Found" (str "No such nameserver: " ident))))
 
       (= kind "entity")
       (error-reply 501 "Not Implemented"
