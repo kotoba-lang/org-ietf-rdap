@@ -118,9 +118,16 @@ data — a Worker, a Ring handler and a test all call the same function.
 
 - **In:** domain lookup, `/help`, the RFC 8056 status mapping, jCard entities,
   RDAP error responses with correct HTTP statuses, and the WHOIS text surface.
-- **Not served:** `nameserver` and `entity` object classes, which answer 501
-  rather than 404 — `srs` does not model hosts and contacts as first-class
-  objects yet, and 404 would be a lie for names that plainly exist in the zone.
+- **Also served:** `nameserver` lookups, when the caller supplies a
+  `:host-lookup` — `srs.host` models hosts now. Without one it is still 501,
+  because a deployment that stores nameservers as plain strings has nothing to
+  answer with and 404 would be a lie for a name that plainly exists in the zone.
+  `linked` reaches RDAP as `associated` through the same RFC 8056 projection as
+  every other status, and the *list* of linked domains is never published —
+  which domains use a nameserver is not something a public lookup should
+  enumerate.
+- **Not served:** the `entity` object class, which answers 501 for the same
+  reason — `srs` does not model contacts as first-class objects yet.
   Also not implemented: search (deliberately, above), RFC 9224 bootstrap (that
   is IANA's file, not a registry's), and RFC 9537 redaction signalling — this
   library redacts, but does not yet emit the `redacted` member describing what
@@ -136,4 +143,4 @@ data — a Worker, a Ring handler and a test all call the same function.
 clojure -M:test
 ```
 
-28 tests / 83 assertions.
+33 tests / 98 assertions.

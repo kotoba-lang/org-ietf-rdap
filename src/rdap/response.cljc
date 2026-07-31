@@ -99,6 +99,41 @@
 
 ;; ── domains ───────────────────────────────────────────────────────────────
 
+(defn nameserver-object
+  "A top-level `nameserver` object (RFC 9083 §5.2) built from an `srs.host`
+  projection.
+
+  `ipAddresses` appears only when the host actually has addresses — which, per
+  RFC 5732 §1.1, is exactly the in-zone case. For an out-of-zone host the
+  registry is not authoritative and holds none, and emitting an empty
+  `ipAddresses` object would assert it has none rather than that the registry
+  does not know.
+
+  `linked` reaches RDAP as a status via the same RFC 8056 projection every
+  other status goes through, so a client reads it the same way. The *list* of
+  linked domains is not published: `srs.host/info` already reports a count, and
+  which domains use a nameserver is not something a public lookup should
+  enumerate."
+  [h {:keys [base]}]
+  (let [addrs (:host/addresses h)
+        v4 (filterv #(not (clojure.string/includes? % ":")) addrs)
+        v6 (filterv #(clojure.string/includes? % ":") addrs)]
+    (cond-> {"objectClassName" "nameserver"
+             "handle" (str (:host/name h) "-SRS")
+             "ldhName" (:host/name h)
+             "status" (status/project (:host/statuses h))
+             "events" (into [] (keep identity)
+                            [(event "registration" (:host/created-at h))
+                             (event "last changed" (:host/updated-at h))])}
+      (seq addrs)
+      (assoc "ipAddresses" (cond-> {}
+                             (seq v4) (assoc "v4" v4)
+                             (seq v6) (assoc "v6" v6)))
+      (:host/registrar h)
+      (assoc "entities" [(entity {:handle (:host/registrar h) :roles ["registrar"]
+                                  :org (:host/registrar h) :base base})])
+      base (assoc "links" [(self-link base "nameserver" (:host/name h))]))))
+
 (defn domain
   "A `domain` object (RFC 9083 §5.3) built from an `srs` domain.
 

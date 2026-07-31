@@ -50,7 +50,11 @@
    :renewPeriod               #{"renew period"}
    :transferPeriod            #{"transfer period"}
    :redemptionPeriod          #{"redemption period"}
-   :pendingRestore            #{"pending restore"}})
+   :pendingRestore            #{"pending restore"}
+   ;; RFC 8056 §2 — a host object's derived status. srs.host derives it from
+   ;; the domains that delegate to the host, so it reaches RDAP through the
+   ;; same projection as every other status rather than a second path.
+   :linked                    #{"associated"}})
 
 (def known
   "The RDAP status values this library will emit (RFC 9083 §10.2)."

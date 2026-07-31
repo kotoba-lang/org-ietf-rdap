@@ -221,3 +221,51 @@
     (is (str/includes? (whois/respond "  EXAMPLE.COM \r\n" lookup opts) "Domain Name: EXAMPLE.COM"))
     (is (str/includes? (whois/respond "-T dn example.com" lookup opts) "not supported"))
     (is (str/includes? (whois/respond "free.com" lookup opts) "No match"))))
+
+;; ── nameserver objects ────────────────────────────────────────────────────
+
+(def in-zone-host
+  {:host/name "ns1.example.com" :host/zone "example.com" :host/registrar "reg-a"
+   :host/addresses ["192.0.2.1" "2001:db8::1"] :host/statuses #{:linked}
+   :host/created-at t0 :host/updated-at t0})
+
+(def out-of-zone-host
+  {:host/name "ns1.example.net" :host/zone "example.com" :host/registrar "reg-a"
+   :host/addresses [] :host/statuses #{:ok}
+   :host/created-at t0 :host/updated-at t0})
+
+(deftest a-nameserver-object-splits-addresses-by-family
+  (let [n (res/nameserver-object in-zone-host opts)]
+    (is (= "nameserver" (get n "objectClassName")))
+    (is (= "ns1.example.com" (get n "ldhName")))
+    (is (= ["192.0.2.1"] (get-in n ["ipAddresses" "v4"])))
+    (is (= ["2001:db8::1"] (get-in n ["ipAddresses" "v6"])))))
+
+(deftest an-out-of-zone-nameserver-has-no-ipaddresses-member-at-all
+  (let [n (res/nameserver-object out-of-zone-host opts)]
+    (is (not (contains? n "ipAddresses"))
+        "an empty object would assert it has no addresses, rather than that the registry is not authoritative for it")))
+
+(deftest the-linked-status-reaches-rdap-through-the-same-projection
+  (is (= ["associated"] (status/project #{:linked})))
+  (is (= ["associated"] (get (res/nameserver-object in-zone-host opts) "status")))
+  (testing "and the list of linked domains is never published"
+    (is (not (contains? (res/nameserver-object in-zone-host opts) "linkedDomains")))
+    (is (nil? (get (res/nameserver-object in-zone-host opts) "domains")))))
+
+(deftest nameserver-lookup-is-served-when-hosts-are-available
+  (let [hosts {"ns1.example.com" in-zone-host}
+        o (assoc opts :host-lookup #(get hosts %))]
+    (let [r (service/handle registry :get "/nameserver/ns1.example.com" (d+ 1) o)]
+      (is (= 200 (:status r)))
+      (is (= "ns1.example.com" (get-in r [:body "ldhName"])))
+      (is (= res/conformance (get-in r [:body "rdapConformance"]))))
+    (testing "and a name it does not have is 404, not 501"
+      (is (= 404 (:status (service/handle registry :get "/nameserver/nope.example.com" (d+ 1) o)))))
+    (testing "while a malformed one is 400"
+      (is (= 400 (:status (service/handle registry :get "/nameserver/-bad" (d+ 1) o)))))))
+
+(deftest without-a-host-lookup-it-is-still-501-rather-than-a-lie
+  (let [r (service/handle registry :get "/nameserver/ns1.example.com" (d+ 1) opts)]
+    (is (= 501 (:status r))
+        "a deployment storing nameservers as strings has nothing to answer with; 404 would be a lie for a name that plainly exists in the zone")))
