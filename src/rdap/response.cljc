@@ -27,7 +27,7 @@
 
   Everything here is data — plain Clojure maps and vectors. `kotoba-lang/json`
   serializes them, and nothing in this namespace touches HTTP."
-  (:require [rdap.jcard :as jcard]
+  (:require [kotoba.lang.text] [rdap.jcard :as jcard]
             [rdap.status :as status]
             [srs.time :as t]))
 
@@ -116,8 +116,8 @@
   enumerate."
   [h {:keys [base]}]
   (let [addrs (:host/addresses h)
-        v4 (filterv #(not (clojure.string/includes? % ":")) addrs)
-        v6 (filterv #(clojure.string/includes? % ":") addrs)]
+        v4 (filterv #(not (kotoba.lang.text/includes? % ":")) addrs)
+        v6 (filterv #(kotoba.lang.text/includes? % ":") addrs)]
     (cond-> {"objectClassName" "nameserver"
              "handle" (str (:host/name h) "-SRS")
              "ldhName" (:host/name h)
