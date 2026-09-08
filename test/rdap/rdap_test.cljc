@@ -1,5 +1,5 @@
 (ns rdap.rdap-test
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [clojure.test :refer [deftest is testing]]
             [json.core :as json]
             [rdap.jcard :as jcard]

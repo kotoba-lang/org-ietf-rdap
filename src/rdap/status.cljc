@@ -22,7 +22,7 @@
 
   RFC 9083 §10.2 fixes the value set; anything outside it is not a status a
   client is required to understand, so this namespace refuses to invent one."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (def epp->rdap
   "RFC 8056 §2 and §4. A status maps to a *set*, because the EPP side is not
@@ -96,4 +96,4 @@
   [status]
   (-> (name status)
       (str/replace #"([a-z])([A-Z])" "$1 $2")
-      str/lower-case))
+      str/lower))

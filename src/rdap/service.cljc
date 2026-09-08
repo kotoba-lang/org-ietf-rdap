@@ -30,7 +30,7 @@
   bulk-extraction endpoint, and offering one by accident is how registration
   data leaves a registry in bulk. It is refused with 501 — a documented \"not
   implemented\", not a silent 404 that reads as \"no results\"."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [rdap.response :as res]
             [rdap.status :as rstatus]
             [srs.core :as srs]

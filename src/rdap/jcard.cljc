@@ -24,7 +24,7 @@
 
   Building this by hand at each call site is how registries end up with
   entities that differ structurally from each other. It is built here instead."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defn- prop
   ([name value] (prop name {} "text" value))

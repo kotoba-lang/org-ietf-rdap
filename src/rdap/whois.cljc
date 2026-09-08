@@ -28,7 +28,7 @@
 
   New integrations should use RDAP. This exists because port 43 clients still
   exist and a registry that answers RDAP but not WHOIS looks down to them."
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [rdap.status :as status]
             [srs.time :as t]))
 
@@ -54,7 +54,7 @@
              whois-server now]}]
   (let [nm (:domain/name d)]
     (->> (concat
-          [(line "Domain Name" (str/upper-case nm))
+          [(line "Domain Name" (str/upper nm))
            (line "Registry Domain ID" (str nm "-SRS"))
            (line "Registrar WHOIS Server" whois-server)
            (line "Registrar URL" registrar-url)
@@ -76,7 +76,7 @@
           [(line "Registry Registrant ID" "REDACTED FOR PRIVACY")
            (line "Registrant Name" "REDACTED FOR PRIVACY")
            (line "Registrant Organization" "REDACTED FOR PRIVACY")]
-          (map #(line "Name Server" (str/upper-case %))
+          (map #(line "Name Server" (str/upper %))
                (sort (:domain/nameservers d)))
           [(line "DNSSEC" "unsigned")
            (when now (line ">>> Last update of WHOIS database" (str (t/iso8601 now) " <<<")))
@@ -92,7 +92,7 @@
   reads as an error rather than as an available name."
   [name]
   (str/join "\r\n"
-            (concat [(str "No match for \"" (str/upper-case name) "\".")
+            (concat [(str "No match for \"" (str/upper name) "\".")
                      ""]
                     disclaimer)))
 
@@ -105,7 +105,7 @@
   different things at different registries, and quietly interpreting one is how
   a query for a domain returns something else."
   [query-line lookup opts]
-  (let [q (some-> query-line str/trim str/lower-case
+  (let [q (some-> query-line str/trim str/lower
                   (str/replace #"\r|\n" ""))]
     (cond
       (str/blank? q) (not-found "")
