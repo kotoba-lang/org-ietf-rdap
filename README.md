@@ -140,7 +140,7 @@ data — a Worker, a Ring handler and a test all call the same function.
 ## Test
 
 ```
-clojure -M:test
+kbb -M:test
 ```
 
 33 tests / 98 assertions.
